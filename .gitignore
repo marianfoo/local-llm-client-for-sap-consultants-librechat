@@ -100,7 +100,18 @@ junit.xml
 
 # docker override file
 docker-compose.override.yaml
-docker-compose.override.yml
+# docker-compose.override.yml
+
+# MCP Servers (cloned at runtime)
+mcp-servers/
+
+# SAP Certificates (S-User passport)
+certs/
+*.pfx
+
+# Docker cache and logs directories
+.npm-cache/
+logs/
 
 # meilisearch
 meilisearch

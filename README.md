@@ -71,6 +71,7 @@
     - Flexible & Extensible: Use MCP Servers, tools, file search, code execution, and more
     - Compatible with Custom Endpoints, OpenAI, Azure, Anthropic, AWS Bedrock, Google, Vertex AI, Responses API, and more
     - [Model Context Protocol (MCP) Support](https://modelcontextprotocol.io/clients#librechat) for Tools
+  - **🏢 SAP MCP Integration**: Pre-configured SAP development tools including documentation search, SAP Notes access, S4/HANA OData services, and ABAP system integration. [Quick Setup Guide →](./MCP_SETUP_GUIDE.md)
 
 - 🔍 **Web Search**:  
   - Search the internet and retrieve relevant information to enhance your AI context
