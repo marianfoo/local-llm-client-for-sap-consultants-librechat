@@ -44,10 +44,10 @@ log "================================================"
 log "Installing build dependencies..."
 if command -v apk >/dev/null 2>&1; then
     # Alpine Linux (LibreChat container)
-    apk add --no-cache make gcc g++ python3 python3-dev linux-headers 2>&1 | tee -a "$LOG_FILE" || log_warn "Build dependencies installation had warnings"
+    apk add --no-cache make gcc g++ python3 python3-dev linux-headers git 2>&1 | tee -a "$LOG_FILE" || log_warn "Build dependencies installation had warnings"
 elif command -v apt-get >/dev/null 2>&1; then
     # Debian/Ubuntu
-    apt-get update && apt-get install -y build-essential python3-dev 2>&1 | tee -a "$LOG_FILE" || log_warn "Build dependencies installation had warnings"
+    apt-get update && apt-get install -y build-essential python3-dev git 2>&1 | tee -a "$LOG_FILE" || log_warn "Build dependencies installation had warnings"
 else
     log_warn "Unknown package manager, skipping build dependencies installation"
 fi
@@ -96,14 +96,48 @@ build_server() {
     cd "$MCP_DIR"
 }
 
-# Check if MCP server repositories exist (they should be mounted from host)
-log "Checking MCP server repositories..."
+# Function to clone a repository if it doesn't exist
+clone_repo_if_missing() {
+    local repo_name=$1
+    local repo_url=$2
+    
+    if [ ! -d "$MCP_DIR/$repo_name" ]; then
+        log "Repository $repo_name not found. Cloning from $repo_url..."
+        git clone --depth 1 "$repo_url" "$MCP_DIR/$repo_name" 2>&1 | tee -a "$LOG_FILE"
+        if [ $? -eq 0 ]; then
+            log_success "Successfully cloned $repo_name"
+        else
+            log_error "Failed to clone $repo_name from $repo_url"
+            return 1
+        fi
+    else
+        log "Repository $repo_name already exists, skipping clone"
+    fi
+}
+
+# Check if MCP server repositories exist, clone them if missing
+log "Checking and setting up MCP server repositories..."
+
+# Repository URLs
+SAP_DOCS_URL="https://github.com/marianfoo/mcp-sap-docs"
+SAP_NOTES_URL="https://github.com/marianfoo/mcp-sap-notes"
+BTP_ODATA_URL="https://github.com/marianfoo/btp-sap-odata-to-mcp-server"
+ABAP_ADT_URL="https://github.com/marianfoo/mcp-abap-adt"
+
+# Clone missing repositories
+clone_repo_if_missing "mcp-sap-docs" "$SAP_DOCS_URL"
+clone_repo_if_missing "mcp-sap-notes" "$SAP_NOTES_URL"
+clone_repo_if_missing "btp-sap-odata-to-mcp-server" "$BTP_ODATA_URL"
+clone_repo_if_missing "mcp-abap-adt" "$ABAP_ADT_URL"
+
+# Final check - if any repository is still missing, exit with error
 if [ ! -d "$MCP_DIR/mcp-sap-docs" ] || [ ! -d "$MCP_DIR/mcp-sap-notes" ] || [ ! -d "$MCP_DIR/btp-sap-odata-to-mcp-server" ] || [ ! -d "$MCP_DIR/mcp-abap-adt" ]; then
-    log_error "MCP server repositories not found. Please ensure they are cloned on the host and mounted correctly."
+    log_error "One or more MCP server repositories could not be set up. Please check network connectivity and repository access."
     log_error "Expected directories: mcp-sap-docs, mcp-sap-notes, btp-sap-odata-to-mcp-server, mcp-abap-adt"
     exit 1
 fi
-log_success "All MCP server repositories found"
+
+log_success "All MCP server repositories are ready"
 
 # Install dependencies for all servers
 log "Installing dependencies for all MCP servers..."
