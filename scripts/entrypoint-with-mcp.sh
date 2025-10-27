@@ -183,10 +183,10 @@ if [ -n "$SAP_URL" ] && [ -n "$SAP_USERNAME" ]; then
     cd "$MCP_DIR/mcp-abap-adt"
     # Check if there's a start:http script, otherwise use node directly
     if grep -q '"start:http"' package.json; then
-        npm run start:http >> "$LOG_FILE" 2>&1 &
+        MCP_PORT=3234 npm run start:http >> "$LOG_FILE" 2>&1 &
     else
         # Fallback: run with MCP inspector in HTTP mode
-        node dist/index.js >> "$LOG_FILE" 2>&1 &
+        MCP_PORT=3234 node dist/index.js >> "$LOG_FILE" 2>&1 &
     fi
     ABAP_ADT_PID=$!
     log_success "ABAP ADT server started (PID: $ABAP_ADT_PID)"
