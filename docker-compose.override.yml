@@ -1,0 +1,78 @@
+# Docker Compose Override for Local MCP Servers
+# This file extends docker-compose.yml to run SAP MCP servers inside the LibreChat container
+# See: https://docs.docker.com/compose/extends/
+
+services:
+  # SAP Notes MCP Server - Dedicated Playwright container
+  sap_notes:
+    image: mcr.microsoft.com/playwright:v1.56.1-noble
+    container_name: mcp-sap-notes
+    working_dir: /app/mcp-servers/mcp-sap-notes
+    command: sh -c "npm ci --no-audit --no-fund && npx playwright install chromium && HTTP_PORT=3123 AUTO_START=true npm run serve:http"
+    ports:
+      - "3123:3123"
+    shm_size: 1g
+    environment:
+      - PFX_PATH=/app/certs/S0027093456.pfx
+      - PFX_PASSPHRASE=${PFX_PASSPHRASE}
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - HTTP_PORT=3123
+      - AUTO_START=true
+      - PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/ms-playwright/chromium-1181/chrome-linux/chrome
+    volumes:
+      - ./mcp-servers:/app/mcp-servers
+      - ./certs:/app/certs:ro
+    networks:
+      - default
+
+  api:
+    # Temporarily run as root to install build dependencies
+    user: "0:0"
+    volumes:
+      # Mount MCP servers directory (will be populated at first run)
+      - ./mcp-servers:/app/mcp-servers
+      # Mount startup scripts
+      - ./scripts/entrypoint-with-mcp.sh:/app/scripts/entrypoint-with-mcp.sh
+      - ./scripts/start-mcp-servers.sh:/app/scripts/start-mcp-servers.sh
+      # Mount SAP Passport certificate (if exists)
+      - ./certs:/app/certs:ro
+      # Mount logs directory with proper permissions
+      - ./logs:/app/api/logs
+      # Create writable npm cache directory
+      - ./.npm-cache:/root/.npm
+    
+    # Use custom entrypoint that starts MCP servers before LibreChat
+    entrypoint: ["/bin/sh", "/app/scripts/entrypoint-with-mcp.sh"]
+    
+    environment:
+      # Fix NPM cache permissions (using root cache since running as root)
+      - NPM_CONFIG_CACHE=/root/.npm
+      # SAP ABAP ADT MCP Server configuration
+      - SAP_URL=${SAP_URL}
+      - SAP_USERNAME=${SAP_USERNAME}
+      - SAP_PASSWORD=${SAP_PASSWORD}
+      - SAP_CLIENT=${SAP_CLIENT:-100}
+      - SAP_LANGUAGE=${SAP_LANGUAGE:-en}
+      - TLS_REJECT_UNAUTHORIZED=${TLS_REJECT_UNAUTHORIZED:-1}
+      
+      # SAP Notes MCP Server configuration
+      - PFX_PATH=${PFX_PATH}
+      - PFX_PASSPHRASE=${PFX_PASSPHRASE}
+      - HTTP_PORT=${HTTP_PORT:-3123}
+      - ACCESS_TOKEN=${ACCESS_TOKEN}
+      
+      # S4/HANA OData MCP Server configuration
+      - SAP_DESTINATION_NAME=${SAP_DESTINATION_NAME}
+      - destinations=${destinations}
+      - MCP_TOOL_REGISTRY_TYPE=${MCP_TOOL_REGISTRY_TYPE:-hierarchical}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - DISABLE_READ_ENTITY_TOOL=${DISABLE_READ_ENTITY_TOOL}
+      - ODATA_ALLOW_ALL=${ODATA_ALLOW_ALL}
+      - ODATA_SERVICE_PATTERNS=${ODATA_SERVICE_PATTERNS}
+      - ODATA_EXCLUSION_PATTERNS=${ODATA_EXCLUSION_PATTERNS}
+      - ODATA_MAX_SERVICES=${ODATA_MAX_SERVICES:-50}
+      
+      # SAP Docs MCP Server configuration
+      - MCP_PORT=${MCP_PORT:-3122}
+
