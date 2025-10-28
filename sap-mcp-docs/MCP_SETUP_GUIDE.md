@@ -37,7 +37,7 @@ ollama pull llama3.1:8b
 
 ```yaml
 mcpServers:
-  # SAP Docs - Always works (no credentials needed) ✅
+  # SAP Documentation Server - Public SAP Help and Community content
   sap_docs:
     type: streamable-http
     url: "http://localhost:3122/mcp"
@@ -46,8 +46,13 @@ mcpServers:
     serverInstructions: |
       You provide access to official SAP Help/Docs and SAP Community content.
       Use for configuration/how-to, conceptual guidance, and product docs (UI5, CAP, ABAP).
+      Prefer a search→get pattern:
+        • sap_help_search(query) → sap_help_get(result_id) to retrieve full content.
+      Build concise queries with SAP terms (e.g., "S/4HANA MRP Live", "sap.m.Button properties").
+      If results are sparse or off-topic, refine product+topic terms before switching servers.
 
-  # SAP Notes - Requires certificate (comment out if not needed)
+  # SAP Notes Server - Official SAP Knowledge Base (requires S-User certificate)
+  # Running in dedicated Playwright sidecar container
   sap_notes:
     type: streamable-http
     url: "http://sap_notes:3123/mcp"
@@ -55,21 +60,37 @@ mcpServers:
     initTimeout: 15000
     serverInstructions: |
       You search official SAP Notes (knowledge base).
-      Use when the user mentions "note", "OSS number", "error", "issue", "fix".
+      Use when the user mentions "note", "OSS number", "error", "issue", "fix", or a 6-8 digit Note ID.
+      Pattern:
+        • If a Note ID is present → sap_note_get(id).
+        • Otherwise → sap_note_search(q) then pick relevant IDs and call sap_note_get.
+      If zero results, try a narrower phrasing or switch to sap_docs for conceptual guidance.
 
-  # S4/HANA - Requires credentials (uncomment if needed)
+  # # S/4HANA OData Server - BTP-connected S/4HANA system access
   # s4hana:
-  #   type: streamable-http  
-  #   url: "http://localhost:3124/mcp"
+  #   type: streamable-http
+  #   url: "http://localhost:3000/mcp"
   #   timeout: 45000
   #   initTimeout: 15000
+  #   serverInstructions: |
+  #     S/4HANA OData services: service discovery, metadata, and business object access (e.g., Business Partner, Sales Order).
+  #     Use for service names, entity sets, fields, and CRUD examples.
+  #     If the request is about "how to configure" or conceptual tasks, prefer sap_docs first.
+  #     Favor safe, read-only examples unless the user explicitly requests write operations.
 
-  # ABAP ADT - Requires SAP system (uncomment if needed)  
+  # # # ABAP ADT Server - Direct SAP system access via ADT
   # abap_adt:
   #   type: streamable-http
-  #   url: "http://localhost:3234/mcp" 
+  #   url: "http://localhost:3234/mcp"
   #   timeout: 45000
   #   initTimeout: 15000
+  #   serverInstructions: |
+  #     ABAP Development Tools (ADT) server for SAP system access.
+  #     Provides tools to retrieve ABAP source code, table structures, and development objects.
+  #     Available tools: GetProgram, GetClass, GetFunctionGroup, GetFunction, GetStructure, 
+  #     GetTable, GetTableContents, GetPackage, GetTypeInfo, GetInclude, SearchObject, 
+  #     GetInterface, GetTransaction.
+  #     Use for ABAP development tasks, code analysis, and system exploration.
 ```
 
 ### Step 5: Add Credentials (Only for Servers You Enabled)
