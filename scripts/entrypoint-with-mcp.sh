@@ -96,13 +96,21 @@ build_server() {
     cd "$MCP_DIR"
 }
 
-# Function to clone a repository if it doesn't exist
+# Function to clone a repository if it doesn't exist or is empty
 clone_repo_if_missing() {
     local repo_name=$1
     local repo_url=$2
     
-    if [ ! -d "$MCP_DIR/$repo_name" ]; then
-        log "Repository $repo_name not found. Cloning from $repo_url..."
+    # Check if directory doesn't exist OR exists but is empty/invalid
+    if [ ! -d "$MCP_DIR/$repo_name" ] || [ ! -f "$MCP_DIR/$repo_name/package.json" ]; then
+        # If directory exists but is empty/invalid, remove it first
+        if [ -d "$MCP_DIR/$repo_name" ]; then
+            log "Repository $repo_name exists but appears empty or corrupted. Removing and re-cloning..."
+            rm -rf "$MCP_DIR/$repo_name"
+        else
+            log "Repository $repo_name not found. Cloning from $repo_url..."
+        fi
+        
         git clone --depth 1 "$repo_url" "$MCP_DIR/$repo_name" 2>&1 | tee -a "$LOG_FILE"
         if [ $? -eq 0 ]; then
             log_success "Successfully cloned $repo_name"
@@ -111,7 +119,7 @@ clone_repo_if_missing() {
             return 1
         fi
     else
-        log "Repository $repo_name already exists, skipping clone"
+        log "Repository $repo_name already exists with valid content, skipping clone"
     fi
 }
 
@@ -124,32 +132,30 @@ SAP_NOTES_URL="https://github.com/marianfoo/mcp-sap-notes"
 BTP_ODATA_URL="https://github.com/marianfoo/btp-sap-odata-to-mcp-server"
 ABAP_ADT_URL="https://github.com/marianfoo/mcp-abap-adt"
 
-# Clone missing repositories
+# Clone missing repositories (sap-notes is self-contained and handled by its own container)
 clone_repo_if_missing "mcp-sap-docs" "$SAP_DOCS_URL"
-clone_repo_if_missing "mcp-sap-notes" "$SAP_NOTES_URL"
 clone_repo_if_missing "btp-sap-odata-to-mcp-server" "$BTP_ODATA_URL"
 clone_repo_if_missing "mcp-abap-adt" "$ABAP_ADT_URL"
 
-# Final check - if any repository is still missing, exit with error
-if [ ! -d "$MCP_DIR/mcp-sap-docs" ] || [ ! -d "$MCP_DIR/mcp-sap-notes" ] || [ ! -d "$MCP_DIR/btp-sap-odata-to-mcp-server" ] || [ ! -d "$MCP_DIR/mcp-abap-adt" ]; then
+# Final check - if any repository is still missing, exit with error (excluding sap-notes)
+if [ ! -d "$MCP_DIR/mcp-sap-docs" ] || [ ! -d "$MCP_DIR/btp-sap-odata-to-mcp-server" ] || [ ! -d "$MCP_DIR/mcp-abap-adt" ]; then
     log_error "One or more MCP server repositories could not be set up. Please check network connectivity and repository access."
-    log_error "Expected directories: mcp-sap-docs, mcp-sap-notes, btp-sap-odata-to-mcp-server, mcp-abap-adt"
+    log_error "Expected directories: mcp-sap-docs, btp-sap-odata-to-mcp-server, mcp-abap-adt"
+    log_error "Note: mcp-sap-notes runs self-contained in its own container"
     exit 1
 fi
 
 log_success "All MCP server repositories are ready"
 
-# Install dependencies for all servers
-log "Installing dependencies for all MCP servers..."
+# Install dependencies for servers (excluding sap-notes which is self-contained)
+log "Installing dependencies for MCP servers..."
 install_deps "mcp-sap-docs"
-install_deps "mcp-sap-notes"
 install_deps "btp-sap-odata-to-mcp-server"
 install_deps "mcp-abap-adt"
 
-# Build all servers
-log "Building all MCP servers..."
+# Build all servers (excluding sap-notes which is self-contained)
+log "Building MCP servers..."
 build_server "mcp-sap-docs"
-build_server "mcp-sap-notes"
 build_server "btp-sap-odata-to-mcp-server"
 build_server "mcp-abap-adt"
 
@@ -163,12 +169,12 @@ MCP_PORT=${MCP_PORT:-3122} npm run start:streamable >> "$LOG_FILE" 2>&1 &
 SAP_DOCS_PID=$!
 log_success "SAP Docs server started (PID: $SAP_DOCS_PID)"
 
-# 2. SAP Notes Server - now runs in dedicated sidecar container
-log "SAP Notes server runs in dedicated Playwright sidecar container (sap_notes service)"
+# 2. SAP Notes Server - self-contained in dedicated Playwright sidecar container
+log "SAP Notes server is self-contained in dedicated Playwright container (sap_notes service)"
 
-# 3. S4/HANA OData Server (port 3124) - only if credentials are provided
+# 3. S4/HANA OData Server (port 3000) - only if credentials are provided
 if [ -n "$SAP_DESTINATION_NAME" ] && [ -n "$destinations" ]; then
-    log "Starting S4/HANA OData MCP Server on port 3124..."
+    log "Starting S4/HANA OData MCP Server on port 3000..."
     cd "$MCP_DIR/btp-sap-odata-to-mcp-server"
     npm run start:http >> "$LOG_FILE" 2>&1 &
     S4_HANA_PID=$!
