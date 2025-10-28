@@ -12,9 +12,9 @@ services:
       sh -c "
         echo '🚀 SAP Notes MCP Server - Self-Contained Setup' &&
         
-        if ! command -v git >/dev/null 2>&1 || ! command -v node >/dev/null 2>&1; then
-          echo '📦 Installing git and build dependencies...' &&
-          apt-get update && apt-get install -y git build-essential
+        if ! command -v git >/dev/null 2>&1 || ! command -v node >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
+          echo '📦 Installing git, curl, and build dependencies...' &&
+          apt-get update && apt-get install -y git build-essential curl
         else
           echo '✅ System dependencies already installed'
         fi &&
@@ -53,7 +53,7 @@ services:
         fi &&
         
         echo '✅ Setup complete! Starting SAP Notes MCP Server...' &&
-        HTTP_PORT=3123 AUTO_START=true npm run serve:http
+        HTTP_PORT=3123 AUTO_START=true npm run serve:http:debug
       "
     ports:
       - "3123:3123"
@@ -66,6 +66,14 @@ services:
       - HTTP_PORT=3123
       - AUTO_START=true
       - PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/ms-playwright/chromium-1181/chrome-linux/chrome
+      # Timeout configurations for Docker environment
+      - BROWSER_TIMEOUT=90000
+      - NAVIGATION_TIMEOUT=60000
+      - AUTH_TIMEOUT=45000
+      - PAGE_LOAD_TIMEOUT=30000
+      # Docker environment optimizations
+      - DOCKER_ENV=true
+      - NODE_ENV=production
     volumes:
       - ./certs:/app/certs:ro
       # Persist mcp-servers directory to avoid re-cloning and rebuilding on every restart
