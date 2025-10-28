@@ -3,12 +3,58 @@
 # See: https://docs.docker.com/compose/extends/
 
 services:
-  # SAP Notes MCP Server - Dedicated Playwright container
+  # SAP Notes MCP Server - Dedicated Playwright container (Self-Contained)
   sap_notes:
     image: mcr.microsoft.com/playwright:v1.56.1-noble
     container_name: mcp-sap-notes
-    working_dir: /app/mcp-servers/mcp-sap-notes
-    command: sh -c "npm ci --no-audit --no-fund && npx playwright install chromium && HTTP_PORT=3123 AUTO_START=true npm run serve:http"
+    working_dir: /app
+    command: >
+      sh -c "
+        echo '🚀 SAP Notes MCP Server - Self-Contained Setup' &&
+        
+        if ! command -v git >/dev/null 2>&1 || ! command -v node >/dev/null 2>&1; then
+          echo '📦 Installing git and build dependencies...' &&
+          apt-get update && apt-get install -y git build-essential
+        else
+          echo '✅ System dependencies already installed'
+        fi &&
+        
+        echo '📂 Creating mcp-servers directory...' &&
+        mkdir -p /app/mcp-servers && cd /app/mcp-servers &&
+        
+        if [ ! -d 'mcp-sap-notes' ]; then
+          echo '🔄 Cloning mcp-sap-notes repository...' &&
+          git clone --depth 1 https://github.com/marianfoo/mcp-sap-notes
+        else
+          echo '✅ Repository already cloned'
+        fi &&
+        
+        cd mcp-sap-notes &&
+        
+        if [ ! -d 'node_modules' ] || [ ! -f 'node_modules/.package-lock.json' ]; then
+          echo '📦 Installing npm dependencies...' &&
+          npm install --no-audit --no-fund
+        else
+          echo '✅ NPM dependencies already installed'
+        fi &&
+        
+        if [ ! -d 'dist' ] || [ ! -f 'dist/index.js' ]; then
+          echo '🔧 Building TypeScript to JavaScript...' &&
+          npm run build
+        else
+          echo '✅ TypeScript build already completed'
+        fi &&
+        
+        if [ ! -f '/ms-playwright/chromium-1181/chrome-linux/chrome' ]; then
+          echo '🎭 Installing Playwright chromium...' &&
+          npx playwright install chromium
+        else
+          echo '✅ Playwright chromium already installed'
+        fi &&
+        
+        echo '✅ Setup complete! Starting SAP Notes MCP Server...' &&
+        HTTP_PORT=3123 AUTO_START=true npm run serve:http
+      "
     ports:
       - "3123:3123"
     shm_size: 1g
@@ -21,8 +67,9 @@ services:
       - AUTO_START=true
       - PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/ms-playwright/chromium-1181/chrome-linux/chrome
     volumes:
-      - ./mcp-servers:/app/mcp-servers
       - ./certs:/app/certs:ro
+      # Persist mcp-servers directory to avoid re-cloning and rebuilding on every restart
+      - ./mcp-servers-sap-notes:/app/mcp-servers
     networks:
       - default
 
