@@ -46,6 +46,37 @@
   </a>
 </p>
 
+# 🚀 SAP MCP Servers Integration
+
+This LibreChat fork includes pre-configured **SAP MCP (Model Context Protocol) servers** that transform it into a **supercharged, privacy-focused AI assistant for SAP consultants**. Unlike cloud-based assistants that stop at public documentation, this integration provides secure access to live SAP systems and sensitive customer data.
+
+## 🎯 What Makes This Special
+
+- **🔒 Complete Privacy**: Keep sensitive customer data on your machine - no cloud uploads
+- **🔄 Live System Access**: Direct integration with S/4HANA OData services and ABAP systems  
+- **📚 Unified SAP Knowledge**: Search SAP Help, Community, Notes, and your own systems in one interface
+- **🛠️ Real Development Context**: Analyze ABAP code, DDIC structures, and live configurations without copy-paste
+
+## 🛠️ Available MCP Servers
+
+| Server | Purpose | Requirements |
+|--------|---------|--------------|
+| **SAP Docs MCP** | Documentation & Community search | None (always available) |
+| **SAP Notes MCP** | Official Knowledge Base access | S-User certificate |
+| **S/4HANA OData MCP** | Live system OData services | SAP system credentials |
+| **ABAP ADT MCP** | ABAP source code & structures | SAP development access |
+
+## 📖 Documentation
+
+- **🚀 [Quick Setup Guide](./sap-mcp-docs/MCP_SETUP_GUIDE.md)** - Get running in 10 minutes
+- **⚙️ [Environment Variables](./sap-mcp-docs/ENV_MCP_SERVERS.md)** - Complete configuration reference
+- **🎯 [Use Cases Showcase](./sap-mcp-docs/USE_CASES_SHOWCASE.md)** - Real-world consultant scenarios
+- **📋 [Comprehensive Guide](./sap-mcp-docs/MCP_COMPREHENSIVE_GUIDE.md)** - Production setup & troubleshooting
+- **📁 [Complete Documentation Folder](./sap-mcp-docs/)** - All guides and resources
+
+Perfect for SAP consultants who need to work with customer systems, analyze code, and research solutions while maintaining complete data privacy.
+
+---
 
 # ✨ Features
 
