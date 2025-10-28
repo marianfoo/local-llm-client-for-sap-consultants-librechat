@@ -320,8 +320,8 @@ mcpServers:
     timeout: 30000      # Fast networks
     initTimeout: 10000
   sap_notes:
-    timeout: 60000      # Browser startup needs time
-    initTimeout: 20000
+    timeout: 90000
+    initTimeout: 30000
 ```
 
 ### Security Hardening

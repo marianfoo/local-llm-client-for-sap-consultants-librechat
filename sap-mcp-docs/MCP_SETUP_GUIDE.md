@@ -56,8 +56,8 @@ mcpServers:
   sap_notes:
     type: streamable-http
     url: "http://sap_notes:3123/mcp"
-    timeout: 45000
-    initTimeout: 15000
+    timeout: 90000
+    initTimeout: 30000
     serverInstructions: |
       You search official SAP Notes (knowledge base).
       Use when the user mentions "note", "OSS number", "error", "issue", "fix", or a 6-8 digit Note ID.
