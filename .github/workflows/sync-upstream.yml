@@ -1,0 +1,53 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream and fetch
+        run: |
+          git remote add upstream https://github.com/danny-avila/LibreChat.git
+          git fetch upstream main
+
+      - name: Attempt rebase
+        id: rebase
+        run: |
+          if git rebase upstream/main; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            git rebase --abort
+            echo "status=conflict" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push changes (if no conflicts)
+        if: steps.rebase.outputs.status == 'success'
+        run: git push origin main --force-with-lease
+
+      - name: Create PR (if conflicts)
+        if: steps.rebase.outputs.status == 'conflict'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: sync/upstream-main
+          title: "Sync with upstream LibreChat"
+          body: |
+            Automatic sync with upstream failed due to conflicts.
+            Please resolve manually.
+          base: main
+
